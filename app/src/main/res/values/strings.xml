@@ -1,4 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">BootloaderSpoofer</string>
+    <string name="status_default">AOSP Keybox</string>
+    <string name="status_imported">Keybox loaded</string>
+    <string name="import_button">Import keybox</string>
+    <string name="delete_button">Delete imported keybox</string>
+    <string name="import_success">Keybox imported</string>
+    <string name="import_failed">Import failed: %1$s</string>
+    <string name="delete_success">Imported keybox removed</string>
+    <string name="delete_failed">Nothing to delete</string>
+    <string name="import_not_supported">No file picker available</string>
 </resources>

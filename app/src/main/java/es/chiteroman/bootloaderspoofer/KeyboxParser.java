@@ -4,6 +4,8 @@ import android.util.Xml;
 
 import org.xmlpull.v1.XmlPullParser;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
@@ -16,6 +18,12 @@ public class KeyboxParser {
         public final List<String> ecCertificates = new ArrayList<>();
         public String rsaPrivateKey;
         public final List<String> rsaCertificates = new ArrayList<>();
+    }
+
+    public static KeyboxData parse(File file) throws Exception {
+        try (FileInputStream fis = new FileInputStream(file)) {
+            return parse(fis);
+        }
     }
 
     public static KeyboxData parse(InputStream inputStream) throws Exception {

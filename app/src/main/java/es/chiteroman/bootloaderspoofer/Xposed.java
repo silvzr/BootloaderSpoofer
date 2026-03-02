@@ -3,7 +3,7 @@ package es.chiteroman.bootloaderspoofer;
 import android.app.AndroidAppHelper;
 import android.app.Application;
 import android.content.Context;
-import android.content.SharedPreferences;
+
 import android.content.pm.PackageManager;
 import android.security.keystore.KeyGenParameterSpec;
 import android.security.keystore.KeyProperties;
@@ -538,31 +538,27 @@ public final class Xposed implements IXposedHookLoadPackage {
         return certificate;
     }
 
+    private static final java.io.File KEYBOX_FILE = new java.io.File("/data/data/es.chiteroman.bootloaderspoofer/files/keybox.xml");
+
     private void tryLoadCustomKeybox() {
         try {
-            SharedPreferences prefs = new de.robv.android.xposed.XSharedPreferences("es.chiteroman.bootloaderspoofer", "keybox");
+            if (!KEYBOX_FILE.exists() || !KEYBOX_FILE.canRead()) return;
 
-            if (!prefs.getBoolean("keybox_loaded", false)) return;
+            KeyboxParser.KeyboxData data = KeyboxParser.parse(KEYBOX_FILE);
 
-            String ecKey = prefs.getString("ec_private_key", null);
-            if (ecKey != null) {
-                keyPair_EC = parseKeyPair(ecKey);
+            if (data.ecPrivateKey != null) {
+                keyPair_EC = parseKeyPair(data.ecPrivateKey);
                 certs_EC.clear();
-                int count = prefs.getInt("ec_cert_count", 0);
-                for (int i = 0; i < count; i++) {
-                    String cert = prefs.getString("ec_cert_" + i, null);
-                    if (cert != null) certs_EC.add(parseCert(cert));
+                for (String cert : data.ecCertificates) {
+                    certs_EC.add(parseCert(cert));
                 }
             }
 
-            String rsaKey = prefs.getString("rsa_private_key", null);
-            if (rsaKey != null) {
-                keyPair_RSA = parseKeyPair(rsaKey);
+            if (data.rsaPrivateKey != null) {
+                keyPair_RSA = parseKeyPair(data.rsaPrivateKey);
                 certs_RSA.clear();
-                int count = prefs.getInt("rsa_cert_count", 0);
-                for (int i = 0; i < count; i++) {
-                    String cert = prefs.getString("rsa_cert_" + i, null);
-                    if (cert != null) certs_RSA.add(parseCert(cert));
+                for (String cert : data.rsaCertificates) {
+                    certs_RSA.add(parseCert(cert));
                 }
             }
 

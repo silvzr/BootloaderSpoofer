@@ -3,9 +3,9 @@
     <string name="app_name">BootloaderSpoofer</string>
     <string name="app_subtitle">Spoof bootloader attestation with a custom keybox</string>
     <string name="keybox_status">KEYBOX STATUS</string>
-    <string name="status_default">Using default keybox</string>
+    <string name="status_default">No keybox loaded</string>
     <string name="status_custom">Custom keybox loaded</string>
     <string name="import_keybox">Import Keybox XML</string>
-    <string name="reset_default">Reset to Default</string>
+    <string name="reset_default">Clear Keybox</string>
     <string name="restart_note">Restart hooked apps after importing a new keybox</string>
 </resources>

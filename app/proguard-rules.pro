@@ -1,5 +1,6 @@
 -repackageclasses es.chiteroman.bootloaderspoofer
--keep class es.chiteroman.bootloaderspoofer.Xposed {public <methods>;}
+-keep class es.chiteroman.bootloaderspoofer.Xposed {*;}
+-keep class es.chiteroman.bootloaderspoofer.Xposed$* {*;}
 -keep class es.chiteroman.bootloaderspoofer.MainActivity {*;}
 -keep class es.chiteroman.bootloaderspoofer.KeyboxParser {*;}
 -keep class es.chiteroman.bootloaderspoofer.KeyboxParser$KeyboxData {*;}

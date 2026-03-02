@@ -3,6 +3,7 @@ package es.chiteroman.bootloaderspoofer;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
@@ -12,14 +13,12 @@ import android.widget.Toast;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.InputStream;
 
 public class MainActivity extends Activity {
 
     private static final int PICK_XML_FILE = 1;
-    private static final String KEYBOX_FILE = "keybox.xml";
+    private static final String PREFS_NAME = "keybox";
 
     private TextView statusText;
     private TextView infoText;
@@ -77,13 +76,7 @@ public class MainActivity extends Activity {
                 return;
             }
 
-            // Save the raw XML
-            File keyboxFile = getKeyboxFile();
-            try (FileOutputStream fos = new FileOutputStream(keyboxFile)) {
-                fos.write(xmlBytes);
-            }
-
-            fixPermissions();
+            saveKeybox(data);
             updateStatus();
             Toast.makeText(this, "Keybox imported successfully!", Toast.LENGTH_SHORT).show();
 
@@ -92,62 +85,72 @@ public class MainActivity extends Activity {
         }
     }
 
-    private File getKeyboxFile() {
-        return new File(getFilesDir(), KEYBOX_FILE);
+    private SharedPreferences getPrefs() {
+        return getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
     }
 
-    private void fixPermissions() {
-        File dataDir = new File(getApplicationInfo().dataDir);
-        File filesDir = getFilesDir();
-        File keyboxFile = getKeyboxFile();
+    private void saveKeybox(KeyboxParser.KeyboxData data) {
+        SharedPreferences.Editor editor = getPrefs().edit();
+        editor.clear();
+        editor.putBoolean("keybox_loaded", true);
 
-        dataDir.setExecutable(true, false);
-        dataDir.setReadable(true, false);
-        filesDir.setExecutable(true, false);
-        filesDir.setReadable(true, false);
-        if (keyboxFile.exists()) {
-            keyboxFile.setReadable(true, false);
+        if (data.deviceId != null) {
+            editor.putString("device_id", data.deviceId);
         }
+
+        if (data.ecPrivateKey != null) {
+            editor.putString("ec_private_key", data.ecPrivateKey);
+            editor.putInt("ec_cert_count", data.ecCertificates.size());
+            for (int i = 0; i < data.ecCertificates.size(); i++) {
+                editor.putString("ec_cert_" + i, data.ecCertificates.get(i));
+            }
+        }
+
+        if (data.rsaPrivateKey != null) {
+            editor.putString("rsa_private_key", data.rsaPrivateKey);
+            editor.putInt("rsa_cert_count", data.rsaCertificates.size());
+            for (int i = 0; i < data.rsaCertificates.size(); i++) {
+                editor.putString("rsa_cert_" + i, data.rsaCertificates.get(i));
+            }
+        }
+
+        editor.commit();
     }
 
     private void resetKeybox() {
-        File keyboxFile = getKeyboxFile();
-        if (keyboxFile.exists()) {
-            keyboxFile.delete();
-        }
+        getPrefs().edit().clear().commit();
         updateStatus();
         Toast.makeText(this, "Reset to default keybox", Toast.LENGTH_SHORT).show();
     }
 
     private void updateStatus() {
-        File keyboxFile = getKeyboxFile();
+        SharedPreferences prefs = getPrefs();
+        boolean loaded = prefs.getBoolean("keybox_loaded", false);
 
-        if (keyboxFile.exists()) {
-            try {
-                KeyboxParser.KeyboxData data = KeyboxParser.parse(keyboxFile);
+        if (loaded) {
+            statusText.setText(R.string.status_custom);
+            statusText.setTextColor(0xFF4CAF50);
 
-                statusText.setText(R.string.status_custom);
-                statusText.setTextColor(0xFF4CAF50);
-
-                StringBuilder info = new StringBuilder();
-                if (data.deviceId != null) {
-                    info.append("Device ID: ").append(data.deviceId).append("\n");
-                }
-                if (data.ecPrivateKey != null) {
-                    info.append("EC key: \u2713 (").append(data.ecCertificates.size()).append(" certs)\n");
-                }
-                if (data.rsaPrivateKey != null) {
-                    info.append("RSA key: \u2713 (").append(data.rsaCertificates.size()).append(" certs)");
-                }
-
-                infoText.setText(info.toString().trim());
-                infoText.setVisibility(View.VISIBLE);
-
-            } catch (Exception e) {
-                statusText.setText("Error reading keybox");
-                statusText.setTextColor(0xFFCF6679);
-                infoText.setVisibility(View.GONE);
+            StringBuilder info = new StringBuilder();
+            String deviceId = prefs.getString("device_id", null);
+            if (deviceId != null) {
+                info.append("Device ID: ").append(deviceId).append("\n");
             }
+
+            boolean hasEc = prefs.getString("ec_private_key", null) != null;
+            boolean hasRsa = prefs.getString("rsa_private_key", null) != null;
+
+            if (hasEc) {
+                int n = prefs.getInt("ec_cert_count", 0);
+                info.append("EC key: \u2713 (").append(n).append(" certs)\n");
+            }
+            if (hasRsa) {
+                int n = prefs.getInt("rsa_cert_count", 0);
+                info.append("RSA key: \u2713 (").append(n).append(" certs)");
+            }
+
+            infoText.setText(info.toString().trim());
+            infoText.setVisibility(View.VISIBLE);
         } else {
             statusText.setText(R.string.status_default);
             statusText.setTextColor(0xFFBB86FC);

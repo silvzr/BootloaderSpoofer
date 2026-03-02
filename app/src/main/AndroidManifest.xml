@@ -26,7 +26,7 @@
             android:value="Spoof a locked bootloader in local attestations" />
         <meta-data
             android:name="xposedminversion"
-            android:value="82" />
+            android:value="100" />
         <meta-data
             android:name="xposedscope"
             android:resource="@array/scope" />

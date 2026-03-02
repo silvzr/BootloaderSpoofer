@@ -3,6 +3,7 @@ package es.chiteroman.bootloaderspoofer;
 import android.app.AndroidAppHelper;
 import android.app.Application;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.security.keystore.KeyGenParameterSpec;
 import android.security.keystore.KeyProperties;
@@ -58,7 +59,7 @@ import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
 public final class Xposed implements IXposedHookLoadPackage {
-    private static final KeyPair keyPair_EC, keyPair_RSA;
+    private static KeyPair keyPair_EC, keyPair_RSA;
     private static final LinkedList<Certificate> certs_EC = new LinkedList<>();
     private static final LinkedList<Certificate> certs_RSA = new LinkedList<>();
     private static byte[] attestationChallengeBytes = new byte[1];
@@ -537,10 +538,47 @@ public final class Xposed implements IXposedHookLoadPackage {
         return certificate;
     }
 
+    private void tryLoadCustomKeybox() {
+        try {
+            SharedPreferences prefs = new de.robv.android.xposed.XSharedPreferences("es.chiteroman.bootloaderspoofer", "keybox");
+
+            if (!prefs.getBoolean("keybox_loaded", false)) return;
+
+            String ecKey = prefs.getString("ec_private_key", null);
+            if (ecKey != null) {
+                keyPair_EC = parseKeyPair(ecKey);
+                certs_EC.clear();
+                int count = prefs.getInt("ec_cert_count", 0);
+                for (int i = 0; i < count; i++) {
+                    String cert = prefs.getString("ec_cert_" + i, null);
+                    if (cert != null) certs_EC.add(parseCert(cert));
+                }
+            }
+
+            String rsaKey = prefs.getString("rsa_private_key", null);
+            if (rsaKey != null) {
+                keyPair_RSA = parseKeyPair(rsaKey);
+                certs_RSA.clear();
+                int count = prefs.getInt("rsa_cert_count", 0);
+                for (int i = 0; i < count; i++) {
+                    String cert = prefs.getString("rsa_cert_" + i, null);
+                    if (cert != null) certs_RSA.add(parseCert(cert));
+                }
+            }
+
+            XposedBridge.log("BootloaderSpoofer: Custom keybox loaded");
+        } catch (Throwable t) {
+            XposedBridge.log("BootloaderSpoofer: Failed to load custom keybox, using defaults");
+            XposedBridge.log(t);
+        }
+    }
+
     @Override
     public void handleLoadPackage(XC_LoadPackage.LoadPackageParam lpparam) {
 
         if (!lpparam.isFirstApplication) return;
+
+        tryLoadCustomKeybox();
 
         final var systemFeatureHook = new XC_MethodHook() {
             @Override
